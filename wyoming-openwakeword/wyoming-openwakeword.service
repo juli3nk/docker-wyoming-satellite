@@ -1,0 +1,19 @@
+[Unit]
+Description=Wyoming openWakeWord
+
+[Service]
+Type=simple
+ExecStart=docker container run -t --rm \
+	--mount type=bind,src=/run/pulse/native,dst=/run/pulse/native \
+	--mount type=bind,src=/run/pulse/.config/pulse/cookie,dst=/run/pulse/.config/pulse/cookie \
+	--device /dev/snd \
+	--env PULSE_SERVER=unix:/run/pulse/native \
+	--network wyoming \
+	--name openwakeword \
+	juli3nk/wyoming-openwakeword
+ExecStop=docker container kill openwakeword
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=default.target

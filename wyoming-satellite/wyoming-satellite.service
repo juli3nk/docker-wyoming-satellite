@@ -1,0 +1,40 @@
+[Unit]
+Description=Wyoming Satellite
+Wants=network-online.target
+After=network-online.target
+Requires=wyoming-openwakeword.service
+Requires=2mic-leds.service
+Requires=pulseaudio.service
+
+[Service]
+Type=simple
+ExecStart=docker container run -t --rm \
+	--mount type=bind,src=/run/pulse/native,dst=/run/pulse/native \
+	--mount type=bind,src=/run/pulse/.config/pulse/cookie,dst=/run/pulse/.config/pulse/cookie \
+	--device /dev/snd \
+	--env PULSE_SERVER=unix:/run/pulse/native \
+	--network wyoming \
+	--publish 10700:10700 \
+	--name wyoming-satellite \
+	juli3nk/wyoming-satellite \
+		--name 'LivingRoom Satellite' \
+		--mic-command '/usr/bin/parecord --property=media.role=phone --rate=16000 --channels=1 --format=s16le --raw --latency-msec 10' \
+		--snd-command '/usr/bin/paplay --property=media.role=announce --rate=44100 --channels=1 --format=s16le --raw --latency-msec 10' \
+		--snd-command-rate 44100 \
+		--snd-volume-multiplier 0.1 \
+		--mic-auto-gain 7 \
+		--mic-noise-suppression 3 \
+		--wake-uri 'tcp://openwakeword:10400' \
+		--wake-word-name 'ok_nabu' \
+		--event-uri 'tcp://2micleds:10500' \
+		--detection-command '/app/actions/awake.sh' \
+		--tts-stop-command '/app/actions/done.sh' \
+		--error-command '/app/actions/done.sh' \
+		--awake-wav sounds/awake.wav \
+		--done-wav sounds/done.wav
+ExecStop=docker container kill wyoming-satellite
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=default.target
